@@ -66,10 +66,16 @@ def leer_pestana(nombre_pestana):
     try:
         worksheet = sh.worksheet(nombre_pestana)
         records = worksheet.get_all_records()
-        # Calculamos dinámicamente la fila real de Google Sheets para poder editarla/borrarla luego
+        df = pd.DataFrame(records)
+        
+        # Esta línea es la que hace la magia:
+        # Pone todos los nombres de columnas en minúsculas automáticamente
+        df.columns = [col.lower() for col in df.columns]
+        
+        # Calculamos dinámicamente la fila real de Google Sheets
         for i, r in enumerate(records):
             r['sheet_row'] = i + 2
-        return worksheet, pd.DataFrame(records)
+        return worksheet, df
     except Exception as e:
         st.error(f"Error al acceder a la pestaña '{nombre_pestana}': {e}")
         return None, pd.DataFrame()
