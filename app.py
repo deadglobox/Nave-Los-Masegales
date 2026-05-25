@@ -68,13 +68,12 @@ def leer_pestana(nombre_pestana):
         records = worksheet.get_all_records()
         df = pd.DataFrame(records)
         
-        # Esta línea es la que hace la magia:
-        # Pone todos los nombres de columnas en minúsculas automáticamente
+        # 1. Convertimos columnas a minúsculas para que no importen las mayúsculas
         df.columns = [col.lower() for col in df.columns]
         
-        # Calculamos dinámicamente la fila real de Google Sheets
-        for i, r in enumerate(records):
-            r['sheet_row'] = i + 2
+        # 2. Creamos la columna sheet_row para que el botón de "Ok" sepa cuál borrar
+        df['sheet_row'] = range(2, len(df) + 2)
+        
         return worksheet, df
     except Exception as e:
         st.error(f"Error al acceder a la pestaña '{nombre_pestana}': {e}")
