@@ -81,9 +81,9 @@ st.sidebar.markdown("<p class='big-font'>🚜 NAVE LOS MASEGALES</p>", unsafe_al
 opcion = st.sidebar.radio("Menú de Gestión:", ["📈 Resumen y Bote", "📋 Lista de Tareas", "🧱 Control de Obras", "🌱 Huerta Ecológica", "🔧 Inventario"])
 
 # ==========================================
-# 2. PESTAÑA: LISTA DE TAREAS
+# 1. PESTAÑA: LISTA DE TAREAS
 # ==========================================
-elif opcion == "📋 Lista de Tareas":
+if opcion == "📋 Lista de Tareas":
     st.title("📋 Tareas de la Finca")
     col_t1, col_t2 = st.columns([1, 1.5])
     ws_tareas, df_t = leer_pestana("tareas")
@@ -124,7 +124,7 @@ elif opcion == "📋 Lista de Tareas":
 # ==========================================
 # 2. PESTAÑA: RESUMEN Y BOTE
 # ==========================================
-if opcion == "📈 Resumen y Bote":
+elif opcion == "📈 Resumen y Bote":
     st.title("📈 Contabilidad General")
     ws_finanzas, df_finanzas = leer_pestana("finanzas")
     ws_tareas, df_tareas = leer_pestana("tareas")
