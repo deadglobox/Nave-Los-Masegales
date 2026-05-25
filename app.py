@@ -81,7 +81,48 @@ st.sidebar.markdown("<p class='big-font'>🚜 NAVE LOS MASEGALES</p>", unsafe_al
 opcion = st.sidebar.radio("Menú de Gestión:", ["📈 Resumen y Bote", "📋 Lista de Tareas", "🧱 Control de Obras", "🌱 Huerta Ecológica", "🔧 Inventario"])
 
 # ==========================================
-# 1. PESTAÑA: RESUMEN Y BOTE
+# 2. PESTAÑA: LISTA DE TAREAS
+# ==========================================
+elif opcion == "📋 Lista de Tareas":
+    st.title("📋 Tareas de la Finca")
+    col_t1, col_t2 = st.columns([1, 1.5])
+    ws_tareas, df_t = leer_pestana("tareas")
+    
+    with col_t1:
+        st.subheader("Nueva Tarea")
+        with st.form("form_tareas", clear_on_submit=True):
+            tarea = st.text_input("¿Qué hay que hacer?")
+            prioridad = st.selectbox("Urgencia", ["Alta (Urgente)", "Media", "Baja"])
+            responsable = st.selectbox("Asignar a", MIEMBROS_FAMILIA + ["Todos"])
+            if st.form_submit_button("Guardar Tarea"):
+                if not tarea.strip():
+                    st.error("⚠️ La descripción no puede estar vacía.")
+                else:
+                    ws_tareas.append_row([tarea, prioridad, "Pendiente", responsable])
+                    st.success("¡Tarea anotada!")
+                    st.invalidate_resource(inicializar_gspread)
+                    st.rerun()
+
+    with col_t2:
+        st.subheader("Pendientes")
+        if not df_t.empty:
+            df_pendientes = df_t[df_t['estado'] == 'Pendiente']
+            if not df_pendientes.empty:
+                for index, row in df_pendientes.iterrows():
+                    col_row1, col_row2 = st.columns([3, 1])
+                    col_row1.markdown(f"**📌 {row['tarea']}**\n<small>{row['responsable']} | Pr: {row['prioridad']}</small>", unsafe_allow_html=True)
+                    if col_row2.button("✓ Ok", key=f"t_{row['sheet_row']}"):
+                        ws_tareas.update_cell(int(row['sheet_row']), 3, "Completado")
+                        st.invalidate_resource(inicializar_gspread)
+                        st.rerun()
+                    st.write("---")
+            else:
+                st.success("🎉 ¡Todo al día!")
+        else:
+            st.success("🎉 ¡Todo al día!")
+
+# ==========================================
+# 2. PESTAÑA: RESUMEN Y BOTE
 # ==========================================
 if opcion == "📈 Resumen y Bote":
     st.title("📈 Contabilidad General")
@@ -125,47 +166,6 @@ if opcion == "📈 Resumen y Bote":
             st.dataframe(df_mostrar, use_container_width=True, height=250)
         else:
             st.info("Sin movimientos registrados.")
-
-# ==========================================
-# 2. PESTAÑA: LISTA DE TAREAS
-# ==========================================
-elif opcion == "📋 Lista de Tareas":
-    st.title("📋 Tareas de la Finca")
-    col_t1, col_t2 = st.columns([1, 1.5])
-    ws_tareas, df_t = leer_pestana("tareas")
-    
-    with col_t1:
-        st.subheader("Nueva Tarea")
-        with st.form("form_tareas", clear_on_submit=True):
-            tarea = st.text_input("¿Qué hay que hacer?")
-            prioridad = st.selectbox("Urgencia", ["Alta (Urgente)", "Media", "Baja"])
-            responsable = st.selectbox("Asignar a", MIEMBROS_FAMILIA + ["Todos"])
-            if st.form_submit_button("Guardar Tarea"):
-                if not tarea.strip():
-                    st.error("⚠️ La descripción no puede estar vacía.")
-                else:
-                    ws_tareas.append_row([tarea, prioridad, "Pendiente", responsable])
-                    st.success("¡Tarea anotada!")
-                    st.invalidate_resource(inicializar_gspread)
-                    st.rerun()
-
-    with col_t2:
-        st.subheader("Pendientes")
-        if not df_t.empty:
-            df_pendientes = df_t[df_t['estado'] == 'Pendiente']
-            if not df_pendientes.empty:
-                for index, row in df_pendientes.iterrows():
-                    col_row1, col_row2 = st.columns([3, 1])
-                    col_row1.markdown(f"**📌 {row['tarea']}**\n<small>{row['responsable']} | Pr: {row['prioridad']}</small>", unsafe_allow_html=True)
-                    if col_row2.button("✓ Ok", key=f"t_{row['sheet_row']}"):
-                        ws_tareas.update_cell(int(row['sheet_row']), 3, "Completado")
-                        st.invalidate_resource(inicializar_gspread)
-                        st.rerun()
-                    st.write("---")
-            else:
-                st.success("🎉 ¡Todo al día!")
-        else:
-            st.success("🎉 ¡Todo al día!")
 
 # ==========================================
 # 3. PESTAÑA: CONTROL DE OBRAS
