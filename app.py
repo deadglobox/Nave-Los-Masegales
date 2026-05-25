@@ -47,7 +47,11 @@ st.markdown("""
 # ==========================================
 @st.cache_resource(ttl=60)
 def inicializar_gspread():
-    credentials = st.secrets["gcp_service_account"]
+    # Convertimos los secretos en un diccionario tradicional para poder limpiarlo
+    credentials = dict(st.secrets["gcp_service_account"])
+    # Reparación automática: convierte el texto '\n' en verdaderos saltos de línea
+    if "private_key" in credentials:
+        credentials["private_key"] = credentials["private_key"].replace("\\n", "\n")
     gc = gspread.service_account_from_dict(credentials)
     return gc
 
