@@ -273,7 +273,7 @@ elif opcion == "🧱 REFORMAS":
 # ==========================================
 # 4. PESTAÑA: HUERTA
 # ==========================================
-elif opcion == "🌱 Huerta":
+elif opcion == "🌱 HUERTA":
     st.title("🌱 Cuaderno de Campo")
     col_h1, col_h2 = st.columns([1, 1.5])
     ws_huerta, df_h = leer_pestana("huerta")
