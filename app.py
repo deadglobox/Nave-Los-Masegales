@@ -194,9 +194,124 @@ if opcion == "📋 TAREAS":
                 st.info("Aún no se ha completado ninguna tarea.")
 
 # ==========================================
-# 2. PESTAÑA: RESUMEN Y BOTE
+# 2. PESTAÑA: INVENTARIO
 # ==========================================
-elif opcion == "📈 Resumen y Bote":
+elif opcion == "🔧 INVENTARIO":
+    st.title("🔧 Inventario y Herramientas")
+    col_i1, col_i2 = st.columns([1, 1.5])
+    ws_inventario, df_i = leer_pestana("inventario")
+    ws_finanzas, _ = leer_pestana("finanzas")
+    
+    with col_i1:
+        st.subheader("Añadir Objeto")
+        with st.form("form_inv", clear_on_submit=True):
+            articulo = st.text_input("Nombre de la herramienta")
+            cat_inv = st.selectbox("Categoría", ["Herramientas", "Maquinaria", "Mobiliario", "Riego", "Otros"])
+            cantidad = st.number_input("Cantidad", min_value=1, value=1)
+            ubicacion = st.selectbox("Ubicación", ["Nave Principal", "Caseta de Riego", "Exterior", "Por determinar"])
+            estado_art = st.selectbox("Estado", ["Perfecto", "Usado", "Reparar"])
+            aportado_por = st.selectbox("Dueño / Aportado por", MIEMBROS_FAMILIA)
+            estado_traslado = st.selectbox("¿Ya está en la finca?", ["Ya en la finca", "Pendiente de llevar"])
+            valor_estimado = st.number_input("Valor Estimado (€)", min_value=0.0, step=5.0)
+            es_compra_nueva = st.checkbox("¿Es compra nueva pagada con el Bote?")
+            
+            if st.form_submit_button("REGISTRAR ARTÍCULO"):
+                if not articulo.strip():
+                    st.error("⚠️ Nombre obligatorio.")
+                else:
+                    ws_inventario.append_row([articulo, cat_inv, int(cantidad), ubicacion, estado_art, aportado_por, estado_traslado, valor_estimado])
+                    if es_compra_nueva and valor_estimado > 0:
+                        ws_finanzas.append_row([str(datetime.now().date()), f"Compra: {articulo}", "Inventario", "Herramientas", valor_estimado, aportado_por, "Gasto"])
+                    st.success("¡Inventario actualizado!")
+                    st.cache_resource.clear()
+                    st.rerun()
+
+    with col_i2:
+        st.subheader("Almacén")
+        if not df_i.empty:
+            # Comprobación de seguridad para evitar fallos si el nombre en el Excel varía ligeramente
+            columna_valor = 'valor_estimado' if 'valor_estimado' in df_i.columns else df_i.columns[-1]
+            st.metric("Patrimonio Estimado", f"{df_i[columna_valor].sum():,.2f} €")
+            st.dataframe(df_i[['articulo', 'cantidad', 'aportado_por', 'estado_traslado']], use_container_width=True, height=350)
+        else:
+            st.info("Sin registros.")
+
+# ==========================================
+# 3. PESTAÑA: REFORMAS
+# ==========================================
+elif opcion == "🧱 REFORMAS":
+    st.title("🧱 Estado de Obras")
+    col_o1, col_o2 = st.columns([1, 1.5])
+    ws_obras, df_o = leer_pestana("obras")
+    ws_finanzas, _ = leer_pestana("finanzas")
+    
+    with col_o1:
+        st.subheader("Registrar Avance")
+        with st.form("form_obras", clear_on_submit=True):
+            proyecto = st.selectbox("Zona", ["Construcción Nave", "Piscina", "Vallado Perimetral", "Acondicionamiento Terreno", "Instalación Riego"])
+            fase = st.selectbox("Fase", ["Planificación", "Movimiento de Tierras", "Estructura", "Acabados", "Finalizado"])
+            fecha_i = st.date_input("Fecha")
+            coste_obra = st.number_input("Coste Material (€)", min_value=0.0, step=5.0)
+            quien_paga = st.selectbox("¿Quién lo pagó?", MIEMBROS_FAMILIA)
+            notas = st.text_area("Notas / Materiales")
+            
+            if st.form_submit_button("REGISTRAR"):
+                ws_obras.append_row([proyecto, fase, str(fecha_i), notas])
+                if coste_obra > 0:
+                    ws_finanzas.append_row([str(fecha_i), f"Obra {proyecto} ({fase})", "Obras", proyecto, coste_obra, quien_paga, "Gasto"])
+                st.success("Sincronizado correctamente.")
+                st.cache_resource.clear()
+                st.rerun()
+
+    with col_o2:
+        st.subheader("Historial")
+        if not df_o.empty:
+            st.dataframe(df_o.drop(columns=['sheet_row'], errors='ignore').sort_index(ascending=False), use_container_width=True, height=350)
+        else:
+            st.info("Sin registros.")
+
+# ==========================================
+# 4. PESTAÑA: HUERTA
+# ==========================================
+elif opcion == "🌱 Huerta":
+    st.title("🌱 Cuaderno de Campo")
+    col_h1, col_h2 = st.columns([1, 1.5])
+    ws_huerta, df_h = leer_pestana("huerta")
+    ws_finanzas, _ = leer_pestana("finanzas")
+    
+    with col_h1:
+        st.subheader("Nueva Siembra")
+        with st.form("form_huerta", clear_on_submit=True):
+            cultivo = st.text_input("Variedad (Ej: Tomate de colgar)")
+            familia = st.selectbox("Familia Botánica", ["Solanáceas", "Cucurbitáceas", "Leguminosas", "Crucíferas", "Liliáceas"])
+            fecha_s = st.date_input("Fecha")
+            abono = st.selectbox("Abono", ["Compost", "Estiércol", "Humus", "Ninguno"])
+            tratamiento = st.text_input("Tratamiento preventivo")
+            coste_h = st.number_input("Gasto Semillas (€)", min_value=0.0, step=1.0)
+            quien_h = st.selectbox("Comprado por", MIEMBROS_FAMILIA)
+            
+            if st.form_submit_button("REGISTRAR"):
+                if not cultivo.strip():
+                    st.error("⚠️ Especifica el cultivo.")
+                else:
+                    ws_huerta.append_row([cultivo, familia, str(fecha_s), abono, tratamiento, "Activo"])
+                    if coste_h > 0:
+                        ws_finanzas.append_row([str(fecha_s), f"Semillas: {cultivo}", "Huerta", "Huerto", coste_h, quien_h, "Gasto"])
+                    st.success("¡Cultivo registrado!")
+                    st.cache_resource.clear()
+                    st.rerun()
+
+    with col_h2:
+        st.subheader("Historial del Huerto")
+        if not df_h.empty:
+            st.dataframe(df_h.drop(columns=['sheet_row'], errors='ignore').sort_index(ascending=False), use_container_width=True, height=350)
+        else:
+            st.info("Sin registros.")
+
+# ==========================================
+# 5. PESTAÑA: CONTABILIDAD
+# ==========================================
+elif opcion == "📈 CONTABILIDAD":
     st.title("📈 Contabilidad General")
     ws_finanzas, df_finanzas = leer_pestana("finanzas")
     ws_tareas, df_tareas = leer_pestana("tareas")
@@ -239,117 +354,3 @@ elif opcion == "📈 Resumen y Bote":
         else:
             st.info("Sin movimientos registrados.")
 
-# ==========================================
-# 3. PESTAÑA: CONTROL DE OBRAS
-# ==========================================
-elif opcion == "🧱 Control de Obras":
-    st.title("🧱 Estado de Obras")
-    col_o1, col_o2 = st.columns([1, 1.5])
-    ws_obras, df_o = leer_pestana("obras")
-    ws_finanzas, _ = leer_pestana("finanzas")
-    
-    with col_o1:
-        st.subheader("Registrar Avance")
-        with st.form("form_obras", clear_on_submit=True):
-            proyecto = st.selectbox("Zona", ["Construcción Nave", "Piscina", "Vallado Perimetral", "Acondicionamiento Terreno", "Instalación Riego"])
-            fase = st.selectbox("Fase", ["Planificación", "Movimiento de Tierras", "Estructura", "Acabados", "Finalizado"])
-            fecha_i = st.date_input("Fecha")
-            coste_obra = st.number_input("Coste Material (€)", min_value=0.0, step=5.0)
-            quien_paga = st.selectbox("¿Quién lo pagó?", MIEMBROS_FAMILIA)
-            notas = st.text_area("Notas / Materiales")
-            
-            if st.form_submit_button("REGISTRAR"):
-                ws_obras.append_row([proyecto, fase, str(fecha_i), notas])
-                if coste_obra > 0:
-                    ws_finanzas.append_row([str(fecha_i), f"Obra {proyecto} ({fase})", "Obras", proyecto, coste_obra, quien_paga, "Gasto"])
-                st.success("Sincronizado correctamente.")
-                st.cache_resource.clear()
-                st.rerun()
-
-    with col_o2:
-        st.subheader("Historial")
-        if not df_o.empty:
-            st.dataframe(df_o.drop(columns=['sheet_row'], errors='ignore').sort_index(ascending=False), use_container_width=True, height=350)
-        else:
-            st.info("Sin registros.")
-
-# ==========================================
-# 4. PESTAÑA: HUERTA ECOLÓGICA
-# ==========================================
-elif opcion == "🌱 Huerta Ecológica":
-    st.title("🌱 Cuaderno de Campo")
-    col_h1, col_h2 = st.columns([1, 1.5])
-    ws_huerta, df_h = leer_pestana("huerta")
-    ws_finanzas, _ = leer_pestana("finanzas")
-    
-    with col_h1:
-        st.subheader("Nueva Siembra")
-        with st.form("form_huerta", clear_on_submit=True):
-            cultivo = st.text_input("Variedad (Ej: Tomate de colgar)")
-            familia = st.selectbox("Familia Botánica", ["Solanáceas", "Cucurbitáceas", "Leguminosas", "Crucíferas", "Liliáceas"])
-            fecha_s = st.date_input("Fecha")
-            abono = st.selectbox("Abono", ["Compost", "Estiércol", "Humus", "Ninguno"])
-            tratamiento = st.text_input("Tratamiento preventivo")
-            coste_h = st.number_input("Gasto Semillas (€)", min_value=0.0, step=1.0)
-            quien_h = st.selectbox("Comprado por", MIEMBROS_FAMILIA)
-            
-            if st.form_submit_button("REGISTRAR"):
-                if not cultivo.strip():
-                    st.error("⚠️ Especifica el cultivo.")
-                else:
-                    ws_huerta.append_row([cultivo, familia, str(fecha_s), abono, tratamiento, "Activo"])
-                    if coste_h > 0:
-                        ws_finanzas.append_row([str(fecha_s), f"Semillas: {cultivo}", "Huerta", "Huerto", coste_h, quien_h, "Gasto"])
-                    st.success("¡Cultivo registrado!")
-                    st.cache_resource.clear()
-                    st.rerun()
-
-    with col_h2:
-        st.subheader("Historial del Huerto")
-        if not df_h.empty:
-            st.dataframe(df_h.drop(columns=['sheet_row'], errors='ignore').sort_index(ascending=False), use_container_width=True, height=350)
-        else:
-            st.info("Sin registros.")
-
-# ==========================================
-# 5. PESTAÑA: INVENTARIO
-# ==========================================
-elif opcion == "🔧 Inventario":
-    st.title("🔧 Inventario y Herramientas")
-    col_i1, col_i2 = st.columns([1, 1.5])
-    ws_inventario, df_i = leer_pestana("inventario")
-    ws_finanzas, _ = leer_pestana("finanzas")
-    
-    with col_i1:
-        st.subheader("Añadir Objeto")
-        with st.form("form_inv", clear_on_submit=True):
-            articulo = st.text_input("Nombre de la herramienta")
-            cat_inv = st.selectbox("Categoría", ["Herramientas", "Maquinaria", "Mobiliario", "Riego", "Otros"])
-            cantidad = st.number_input("Cantidad", min_value=1, value=1)
-            ubicacion = st.selectbox("Ubicación", ["Nave Principal", "Caseta de Riego", "Exterior", "Por determinar"])
-            estado_art = st.selectbox("Estado", ["Perfecto", "Usado", "Reparar"])
-            aportado_por = st.selectbox("Dueño / Aportado por", MIEMBROS_FAMILIA)
-            estado_traslado = st.selectbox("¿Ya está en la finca?", ["Ya en la finca", "Pendiente de llevar"])
-            valor_estimado = st.number_input("Valor Estimado (€)", min_value=0.0, step=5.0)
-            es_compra_nueva = st.checkbox("¿Es compra nueva pagada con el Bote?")
-            
-            if st.form_submit_button("REGISTRAR ARTÍCULO"):
-                if not articulo.strip():
-                    st.error("⚠️ Nombre obligatorio.")
-                else:
-                    ws_inventario.append_row([articulo, cat_inv, int(cantidad), ubicacion, estado_art, aportado_por, estado_traslado, valor_estimado])
-                    if es_compra_nueva and valor_estimado > 0:
-                        ws_finanzas.append_row([str(datetime.now().date()), f"Compra: {articulo}", "Inventario", "Herramientas", valor_estimado, aportado_por, "Gasto"])
-                    st.success("¡Inventario actualizado!")
-                    st.cache_resource.clear()
-                    st.rerun()
-
-    with col_i2:
-        st.subheader("Almacén")
-        if not df_i.empty:
-            # Comprobación de seguridad para evitar fallos si el nombre en el Excel varía ligeramente
-            columna_valor = 'valor_estimado' if 'valor_estimado' in df_i.columns else df_i.columns[-1]
-            st.metric("Patrimonio Estimado", f"{df_i[columna_valor].sum():,.2f} €")
-            st.dataframe(df_i[['articulo', 'cantidad', 'aportado_por', 'estado_traslado']], use_container_width=True, height=350)
-        else:
-            st.info("Sin registros.")
