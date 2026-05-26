@@ -101,7 +101,6 @@ if opcion == "📋 Lista de Tareas":
                 if not tarea.strip():
                     st.error("⚠️ La descripción no puede estar vacía.")
                 else:
-                    # Guardamos la tarea con estado Pendiente
                     ws_tareas.append_row([tarea, prioridad, "Pendiente", responsable])
                     st.success("¡Tarea anotada!")
                     st.cache_resource.clear()
@@ -114,19 +113,17 @@ if opcion == "📋 Lista de Tareas":
             
             if not df_pendientes.empty:
                 for index, row in df_pendientes.iterrows():
-                    # Definimos el color del borde izquierdo según la prioridad
                     pri = str(row['prioridad']).lower()
                     if "alta" in pri:
-                        borde_color = "#ef4444"  # Rojo
+                        borde_color = "#ef4444"
                         badge = "🔴 ALTA"
                     elif "media" in pri:
-                        borde_color = "#f97316"  # Naranja
+                        borde_color = "#f97316"
                         badge = "🟡 MEDIA"
                     else:
-                        borde_color = "#22c55e"  # Verde
+                        borde_color = "#22c55e"
                         badge = "🟢 BAJA"
                     
-                    # Contenedor visual tipo tarjeta con CSS inyectado para mejorar la visibilidad
                     with st.container():
                         st.markdown(f"""
                             <div style="border-left: 5px solid {borde_color}; background-color: #f8fafc; padding: 12px; border-radius: 4px; margin-bottom: 5px;">
@@ -136,39 +133,52 @@ if opcion == "📋 Lista de Tareas":
                             </div>
                         """, unsafe_allow_html=True)
                         
-                        # Botones de acción alineados debajo de la tarjeta
-                        col_btn1, col_btn2, _ = st.columns([1, 1, 2])
+                        # Tres botones alineados limpiamente
+                        col_btn1, col_btn2, col_btn3, _ = st.columns([1, 1, 1, 1])
                         
                         if col_btn1.button("✓ Hecho", key=f"ok_{row['sheet_row']}"):
                             ws_tareas.update_cell(int(row['sheet_row']), 3, "Completado")
                             st.cache_resource.clear()
                             st.rerun()
                             
-                        if col_btn2.button("🗑️ Borrar", key=f"del_{row['sheet_row']}"):
+                        activar_edicion = col_btn2.button("✏️ Editar", key=f"edit_btn_{row['sheet_row']}")
+                            
+                        if col_btn3.button("🗑️ Borrar", key=f"del_{row['sheet_row']}"):
                             ws_tareas.delete_rows(int(row['sheet_row']))
                             st.cache_resource.clear()
                             st.rerun()
                         
-                        st.write("") # Pequeño espacio de separación
+                        # Formulario oculto de edición rápida para cada tarea
+                        with st.expander(f"⚙️ Modificar: {row['tarea'][:20]}...", expanded=activar_edicion):
+                            with st.form(key=f"form_edit_{row['sheet_row']}"):
+                                nueva_tarea = st.text_input("Editar descripción", value=row['tarea'])
+                                nueva_pri = st.selectbox("Cambiar urgencia", ["Alta (Urgente)", "Media", "Baja"], index=["alta", "media", "baja"].index(next((x for x in ["alta", "media", "baja"] if x in pri), "baja")))
+                                nuevo_resp = st.selectbox("Reasignar a", MIEMBROS_FAMILIA + ["Todos"], index=(MIEMBROS_FAMILIA + ["Todos"]).index(row['responsable']) if row['responsable'] in (MIEMBROS_FAMILIA + ["Todos"]) else 0)
+                                
+                                if st.form_submit_button("Actualizar Tarea"):
+                                    ws_tareas.update_cell(int(row['sheet_row']), 1, nueva_tarea)
+                                    ws_tareas.update_cell(int(row['sheet_row']), 2, nueva_pri)
+                                    ws_tareas.update_cell(int(row['sheet_row']), 4, nuevo_resp)
+                                    st.success("¡Tarea actualizada!")
+                                    st.cache_resource.clear()
+                                    st.rerun()
+                        
+                        st.write("") 
             else:
                 st.success("🎉 ¡Todo al día! No hay tareas pendientes.")
         else:
             st.success("🎉 ¡Todo al día! No hay tareas pendientes.")
             
         # ==========================================
-        # HISTÓRICO COMPLETO DE TAREAS
+        # HISTÓRICO COMPLETO (¡AQUÍ ESTÁ DE VUELTA!)
         # ==========================================
         st.write("---")
         with st.expander("⏳ Ver Histórico Completo de Tareas"):
             if not df_t.empty and 'estado' in df_t.columns:
-                # Filtramos las completadas y las invertimos para que vayan de más nueva a más antigua
                 df_completadas = df_t[df_t['estado'] == 'Completado'].copy()
-                
                 if not df_completadas.empty:
-                    # Invertimos el orden cronológico basándonos en la posición del Excel
+                    # Orden cronológico inverso (de más reciente a más antigua)
                     df_completadas = df_completadas.iloc[::-1]
-                    
-                    # Renombramos columnas estéticamente para el visor final
                     df_historial = df_completadas[['tarea', 'prioridad', 'responsable']].rename(
                         columns={'tarea': 'Tarea Realizada', 'prioridad': 'Urgencia', 'responsable': 'Encargado'}
                     )
