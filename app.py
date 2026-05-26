@@ -81,7 +81,7 @@ def leer_pestana(nombre_pestana):
 MIEMBROS_FAMILIA = ["Felipe y Maribel", "Isabel y Jaime", "Roberto", "Pepi"]
 
 st.sidebar.markdown("<p class='big-font'>🚜 NAVE LOS MASEGALES</p>", unsafe_allow_html=True)
-opcion = st.sidebar.radio("Menú de Gestión:", ["📋 Lista de Tareas", "📈 Resumen y Bote", "🧱 Control de Obras", "🌱 Huerta Ecológica", "🔧 Inventario"])
+opcion = st.sidebar.radio("Menú de Gestión:", ["📋 TAREAS", "🧱 REFORMAS", "🌱 HUERTA", "🔧 INVENTARIO", "📈 CONTABILIDAD"])
 
 # ==========================================
 # 1. PESTAÑA: LISTA DE TAREAS
