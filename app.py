@@ -101,28 +101,82 @@ if opcion == "📋 Lista de Tareas":
                 if not tarea.strip():
                     st.error("⚠️ La descripción no puede estar vacía.")
                 else:
+                    # Guardamos la tarea con estado Pendiente
                     ws_tareas.append_row([tarea, prioridad, "Pendiente", responsable])
                     st.success("¡Tarea anotada!")
                     st.cache_resource.clear()
                     st.rerun()
 
     with col_t2:
-        st.subheader("Pendientes")
-        if not df_t.empty:
+        st.subheader("📌 Tareas Pendientes")
+        if not df_t.empty and 'estado' in df_t.columns:
             df_pendientes = df_t[df_t['estado'] == 'Pendiente']
+            
             if not df_pendientes.empty:
                 for index, row in df_pendientes.iterrows():
-                    col_row1, col_row2 = st.columns([3, 1])
-                    col_row1.markdown(f"**📌 {row['tarea']}**\n<small>{row['responsable']} | Pr: {row['prioridad']}</small>", unsafe_allow_html=True)
-                    if col_row2.button("✓ Ok", key=f"t_{row['sheet_row']}"):
-                        ws_tareas.update_cell(int(row['sheet_row']), 3, "Completado")
-                        st.cache_resource.clear()
-                        st.rerun()
-                    st.write("---")
+                    # Definimos el color del borde izquierdo según la prioridad
+                    pri = str(row['prioridad']).lower()
+                    if "alta" in pri:
+                        borde_color = "#ef4444"  # Rojo
+                        badge = "🔴 ALTA"
+                    elif "media" in pri:
+                        borde_color = "#f97316"  # Naranja
+                        badge = "🟡 MEDIA"
+                    else:
+                        borde_color = "#22c55e"  # Verde
+                        badge = "🟢 BAJA"
+                    
+                    # Contenedor visual tipo tarjeta con CSS inyectado para mejorar la visibilidad
+                    with st.container():
+                        st.markdown(f"""
+                            <div style="border-left: 5px solid {borde_color}; background-color: #f8fafc; padding: 12px; border-radius: 4px; margin-bottom: 5px;">
+                                <span style="font-size: 11px; font-weight: bold; color: {borde_color};">{badge}</span>
+                                <p style="margin: 4px 0; font-size: 16px; font-weight: 600; color: #1e293b;">{row['tarea']}</p>
+                                <span style="font-size: 12px; color: #64748b;">👤 Responsable: <b>{row['responsable']}</b></span>
+                            </div>
+                        """, unsafe_allow_html=True)
+                        
+                        # Botones de acción alineados debajo de la tarjeta
+                        col_btn1, col_btn2, _ = st.columns([1, 1, 2])
+                        
+                        if col_btn1.button("✓ Hecho", key=f"ok_{row['sheet_row']}"):
+                            ws_tareas.update_cell(int(row['sheet_row']), 3, "Completado")
+                            st.cache_resource.clear()
+                            st.rerun()
+                            
+                        if col_btn2.button("🗑️ Borrar", key=f"del_{row['sheet_row']}"):
+                            ws_tareas.delete_rows(int(row['sheet_row']))
+                            st.cache_resource.clear()
+                            st.rerun()
+                        
+                        st.write("") # Pequeño espacio de separación
             else:
-                st.success("🎉 ¡Todo al día!")
+                st.success("🎉 ¡Todo al día! No hay tareas pendientes.")
         else:
-            st.success("🎉 ¡Todo al día!")
+            st.success("🎉 ¡Todo al día! No hay tareas pendientes.")
+            
+        # ==========================================
+        # HISTÓRICO COMPLETO DE TAREAS
+        # ==========================================
+        st.write("---")
+        with st.expander("⏳ Ver Histórico Completo de Tareas"):
+            if not df_t.empty and 'estado' in df_t.columns:
+                # Filtramos las completadas y las invertimos para que vayan de más nueva a más antigua
+                df_completadas = df_t[df_t['estado'] == 'Completado'].copy()
+                
+                if not df_completadas.empty:
+                    # Invertimos el orden cronológico basándonos en la posición del Excel
+                    df_completadas = df_completadas.iloc[::-1]
+                    
+                    # Renombramos columnas estéticamente para el visor final
+                    df_historial = df_completadas[['tarea', 'prioridad', 'responsable']].rename(
+                        columns={'tarea': 'Tarea Realizada', 'prioridad': 'Urgencia', 'responsable': 'Encargado'}
+                    )
+                    st.dataframe(df_historial, use_container_width=True, hide_index=True)
+                else:
+                    st.info("Aún no se ha completado ninguna tarea.")
+            else:
+                st.info("Aún no se ha completado ninguna tarea.")
 
 # ==========================================
 # 2. PESTAÑA: RESUMEN Y BOTE
