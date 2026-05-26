@@ -78,7 +78,7 @@ def leer_pestana(nombre_pestana):
         return None, pd.DataFrame()
 
 # Variables de Negocio
-MIEMBROS_FAMILIA = ["Felipe y Maribel", "Isabel y Jaime", "Roberto"]
+MIEMBROS_FAMILIA = ["Felipe y Maribel", "Isabel y Jaime", "Roberto", "Pepi"]
 
 st.sidebar.markdown("<p class='big-font'>🚜 NAVE LOS MASEGALES</p>", unsafe_allow_html=True)
 opcion = st.sidebar.radio("Menú de Gestión:", ["📋 Lista de Tareas", "📈 Resumen y Bote", "🧱 Control de Obras", "🌱 Huerta Ecológica", "🔧 Inventario"])
