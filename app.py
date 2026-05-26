@@ -274,7 +274,7 @@ elif opcion == "🔧 Inventario":
                     if es_compra_nueva and valor_estimado > 0:
                         ws_finanzas.append_row([str(datetime.now().date()), f"Compra: {articulo}", "Inventario", "Herramientas", valor_estimado, aportado_por, "Gasto"])
                     st.success("¡Inventario actualizado!")
-                    st.invalidate_resource(inicializar_gspread)
+                    st.cache_resource.clear()
                     st.rerun()
 
     with col_i2:
