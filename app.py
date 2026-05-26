@@ -86,7 +86,7 @@ opcion = st.sidebar.radio("Menú de Gestión:", ["📋 TAREAS", "🧱 REFORMAS",
 # ==========================================
 # 1. PESTAÑA: LISTA DE TAREAS
 # ==========================================
-if opcion == "📋 Lista de Tareas":
+if opcion == "📋 TAREAS":
     st.title("📋 Tareas de la Finca")
     col_t1, col_t2 = st.columns([1, 1.5])
     ws_tareas, df_t = leer_pestana("tareas")
