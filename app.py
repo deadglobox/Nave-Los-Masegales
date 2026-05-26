@@ -47,9 +47,7 @@ st.markdown("""
 # ==========================================
 @st.cache_resource(ttl=60)
 def inicializar_gspread():
-    # Convertimos los secretos en un diccionario tradicional para poder limpiarlo
     credentials = dict(st.secrets["gcp_service_account"])
-    # Reparación automática: convierte el texto '\n' en verdaderos saltos de línea
     if "private_key" in credentials:
         credentials["private_key"] = credentials["private_key"].replace("\\n", "\n")
     gc = gspread.service_account_from_dict(credentials)
@@ -68,10 +66,10 @@ def leer_pestana(nombre_pestana):
         records = worksheet.get_all_records()
         df = pd.DataFrame(records)
         
-        # 1. Convertimos columnas a minúsculas para que no importen las mayúsculas
-        df.columns = [col.lower() for col in df.columns]
+        # Limpieza avanzada de nombres de columnas: minúsculas, sin espacios locos y reemplazo de guiones
+        df.columns = [str(col).lower().strip().replace(" ", "_").replace("á","a").replace("é","e").replace("í","i").replace("ó","o").replace("ú","u") for col in df.columns]
         
-        # 2. Creamos la columna sheet_row para que el botón de "Ok" sepa cuál borrar
+        # Generación segura de la columna de tracking de filas
         df['sheet_row'] = range(2, len(df) + 2)
         
         return worksheet, df
@@ -105,7 +103,7 @@ if opcion == "📋 Lista de Tareas":
                 else:
                     ws_tareas.append_row([tarea, prioridad, "Pendiente", responsable])
                     st.success("¡Tarea anotada!")
-                    st.invalidate_resource(inicializar_gspread)
+                    st.cache_resource.clear()
                     st.rerun()
 
     with col_t2:
@@ -118,7 +116,7 @@ if opcion == "📋 Lista de Tareas":
                     col_row1.markdown(f"**📌 {row['tarea']}**\n<small>{row['responsable']} | Pr: {row['prioridad']}</small>", unsafe_allow_html=True)
                     if col_row2.button("✓ Ok", key=f"t_{row['sheet_row']}"):
                         ws_tareas.update_cell(int(row['sheet_row']), 3, "Completado")
-                        st.invalidate_resource(inicializar_gspread)
+                        st.cache_resource.clear()
                         st.rerun()
                     st.write("---")
             else:
@@ -161,7 +159,7 @@ elif opcion == "📈 Resumen y Bote":
                 else:
                     ws_finanzas.append_row([str(datetime.now().date()), f"Aportación de {quien_aporta}", "Fondo Común", "Bote", cuanto_aporta, quien_aporta, "Aportación Bote"])
                     st.success("¡Ingreso registrado!")
-                    st.invalidate_resource(inicializar_gspread)
+                    st.cache_resource.clear()
                     st.rerun()
                     
     with col_f2:
@@ -196,7 +194,7 @@ elif opcion == "🧱 Control de Obras":
                 if coste_obra > 0:
                     ws_finanzas.append_row([str(fecha_i), f"Obra {proyecto} ({fase})", "Obras", proyecto, coste_obra, quien_paga, "Gasto"])
                 st.success("Sincronizado correctamente.")
-                st.invalidate_resource(inicializar_gspread)
+                st.cache_resource.clear()
                 st.rerun()
 
     with col_o2:
@@ -234,7 +232,7 @@ elif opcion == "🌱 Huerta Ecológica":
                     if coste_h > 0:
                         ws_finanzas.append_row([str(fecha_s), f"Semillas: {cultivo}", "Huerta", "Huerto", coste_h, quien_h, "Gasto"])
                     st.success("¡Cultivo registrado!")
-                    st.invalidate_resource(inicializar_gspread)
+                    st.cache_resource.clear()
                     st.rerun()
 
     with col_h2:
@@ -280,7 +278,9 @@ elif opcion == "🔧 Inventario":
     with col_i2:
         st.subheader("Almacén")
         if not df_i.empty:
-            st.metric("Patrimonio Estimado", f"{df_i['valor_estimado'].sum():,.2f} €")
+            # Comprobación de seguridad para evitar fallos si el nombre en el Excel varía ligeramente
+            columna_valor = 'valor_estimado' if 'valor_estimado' in df_i.columns else df_i.columns[-1]
+            st.metric("Patrimonio Estimado", f"{df_i[columna_valor].sum():,.2f} €")
             st.dataframe(df_i[['articulo', 'cantidad', 'aportado_por', 'estado_traslado']], use_container_width=True, height=350)
         else:
             st.info("Sin registros.")
