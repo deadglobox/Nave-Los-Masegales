@@ -133,7 +133,6 @@ if opcion == "📋 Lista de Tareas":
                             </div>
                         """, unsafe_allow_html=True)
                         
-                        # Tres botones alineados limpiamente
                         col_btn1, col_btn2, col_btn3, _ = st.columns([1, 1, 1, 1])
                         
                         if col_btn1.button("✓ Hecho", key=f"ok_{row['sheet_row']}"):
@@ -148,7 +147,6 @@ if opcion == "📋 Lista de Tareas":
                             st.cache_resource.clear()
                             st.rerun()
                         
-                        # Formulario oculto de edición rápida para cada tarea
                         with st.expander(f"⚙️ Modificar: {row['tarea'][:20]}...", expanded=activar_edicion):
                             with st.form(key=f"form_edit_{row['sheet_row']}"):
                                 nueva_tarea = st.text_input("Editar descripción", value=row['tarea'])
@@ -162,7 +160,6 @@ if opcion == "📋 Lista de Tareas":
                                     st.success("¡Tarea actualizada!")
                                     st.cache_resource.clear()
                                     st.rerun()
-                        
                         st.write("") 
             else:
                 st.success("🎉 ¡Todo al día! No hay tareas pendientes.")
@@ -170,19 +167,27 @@ if opcion == "📋 Lista de Tareas":
             st.success("🎉 ¡Todo al día! No hay tareas pendientes.")
             
         # ==========================================
-        # HISTÓRICO COMPLETO (¡AQUÍ ESTÁ DE VUELTA!)
+        # HISTÓRICO COMPLETO CON FUNCIÓN DESHACER (UNDO)
         # ==========================================
         st.write("---")
         with st.expander("⏳ Ver Histórico Completo de Tareas"):
             if not df_t.empty and 'estado' in df_t.columns:
                 df_completadas = df_t[df_t['estado'] == 'Completado'].copy()
                 if not df_completadas.empty:
-                    # Orden cronológico inverso (de más reciente a más antigua)
+                    # Ordenamos cronológicamente a la inversa
                     df_completadas = df_completadas.iloc[::-1]
-                    df_historial = df_completadas[['tarea', 'prioridad', 'responsable']].rename(
-                        columns={'tarea': 'Tarea Realizada', 'prioridad': 'Urgencia', 'responsable': 'Encargado'}
-                    )
-                    st.dataframe(df_historial, use_container_width=True, hide_index=True)
+                    
+                    for index, row in df_completadas.iterrows():
+                        col_h1, col_h2 = st.columns([3, 1])
+                        col_h1.markdown(f"~~✅ {row['tarea']}~~ <br><small style='color:#64748b;'>Hizo: {row['responsable']} | {row['prioridad']}</small>", unsafe_allow_html=True)
+                        
+                        # Botón para recuperar la tarea y devolverla a la vida
+                        if col_h2.button("↩️ Recuperar", key=f"undo_{row['sheet_row']}"):
+                            ws_tareas.update_cell(int(row['sheet_row']), 3, "Pendiente")
+                            st.success("¡Tarea devuelta a pendientes!")
+                            st.cache_resource.clear()
+                            st.rerun()
+                        st.write("---")
                 else:
                     st.info("Aún no se ha completado ninguna tarea.")
             else:
